@@ -32,7 +32,7 @@ def create_database():
         country TEXT NOT NULL,
         name TEXT NOT NULL,
         cost REAL NOT NULL CHECK(cost >=0),
-        timezone INTEGER NOT NULL CHECK(timezone between -23 AND 23)
+        timezone INTEGER NOT NULL CHECK(timezone between -12 AND 14)
         );
     ''')
 
@@ -43,7 +43,7 @@ def create_database():
         personal_ID INTEGER NOT NULL,
         destination_ID INTEGER NOT NULL,
         arrival_destination_ID INTEGER NOT NULL,
-        departure_date_time DATETIME NOT NULL CHECK(departure_date_time >=DATETIME('now')),
+        departure_date_time DATETIME NOT NULL,
         flight_time INTEGER NOT NULL CHECK(flight_time >=0),
         status TEXT NOT NULL CHECK(status IN('NotDeparted', 'Delayed', 'OnRoute', 'Arrived', 'Cancelled')),
         FOREIGN KEY (personal_ID) REFERENCES Pilots(personal_ID) ON DELETE RESTRICT,
