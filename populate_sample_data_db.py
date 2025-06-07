@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import random
 
 #Set Up
-fake_gb = Faker('en_GB') # Use UK specific formatting for Pilot addresses
+fake_gb = Faker('en_GB') #Use UK specific formatting for Pilot addresses
 db_conn = sqlite3.connect("flight_management.db")
 cursor = db_conn.cursor()
 
@@ -17,7 +17,7 @@ def generate_fake_pilots(n):
         dob_obj = fake_gb.date_of_birth(minimum_age=21, maximum_age=65)
         dob_str = dob_obj.strftime('%Y-%m-%d')
 
-        # Generate UK-style address fields
+        #Generate UK-style address fields
         postcode = fake_gb.postcode()[:8]  #Constraint of 8 added to meet database CHECK requirements
         city = fake_gb.city()
         street = fake_gb.street_address()
@@ -86,7 +86,7 @@ def generate_fake_flights(n):
         arrival_id = random.choice([d for d in dest_ids if d != departure_id])
         flight_time = random.randint(30, 480) #Random time in minutes
 
-        # Generate departure time based on status
+        #Generate departure time based on status
         if status == 'NotDeparted':
             dep_dt = datetime.now() + timedelta(days=random.randint(1, 30), hours=random.randint(0, 23), minutes=random.randint(0, 59))
 
@@ -94,7 +94,7 @@ def generate_fake_flights(n):
             dep_dt = datetime.now() + timedelta(days=random.randint(1, 5), hours=random.randint(0, 23), minutes=random.randint(0, 59))
 
         elif status == 'Arrived':
-            dep_dt = datetime.now() - timedelta(minutes=flight_time)
+            dep_dt = datetime.now() - timedelta(random.randint(0, 60), minutes=flight_time)
 
         elif status == 'OnRoute':
             # Departed already but flight is still ongoing
@@ -102,7 +102,7 @@ def generate_fake_flights(n):
             dep_dt = end_time - timedelta(minutes=flight_time)
 
         elif status == 'Cancelled':
-            dep_dt = datetime.now() + timedelta(days=random.randint(-15, 15))
+            dep_dt = datetime.now() + timedelta(days=random.randint(-60, 60))
 
         else:
             dep_dt = datetime.now()  #Fallback
@@ -117,62 +117,134 @@ def generate_fake_flights(n):
 
 
 def generate_status_logs():
-    # Fetch all flights and their current status, departure time, and flight duration
-    cursor.execute("SELECT flight_ID, status, departure_date_time, flight_time FROM Flights")
+# Fetch flights sorted by flight_ID to ensure chronological NotDeparted logs
+    cursor.execute("SELECT flight_ID, status, departure_date_time, flight_time FROM Flights ORDER BY flight_ID ASC")
     flights = cursor.fetchall()
 
-    log_entries = []  # Collect all logs before inserting
+    all_log_entries = []  # Collect all logs from all flights before sorting and inserting
 
-    # Define chance of delayed status per flight type
-    delay_probs = {
-        'OnRoute': 0.3,
-        'Arrived': 0.4,
-        'Cancelled': 0.2
-    }
+    # Global start time for logs, relative to the current context time (Thursday, June 5, 2025 6:45:18 PM BST)
+    # This ensures NotDeparted logs for earlier FlightIDs are truly earlier.
+    global_log_base_time = datetime(2025, 3, 1, 0, 0, 0) # Start logs from March 1, 2025
+    last_not_departed_log_time_tracker = global_log_base_time
+
+    delay_prob = 0.35 # Overall chance for a flight to experience a delay
 
     for flight in flights:
-        flight_id, current_status, departure_str, flight_time = flight
-        dep_dt = datetime.strptime(departure_str, '%Y-%m-%d %H:%M:%S')
+        flight_id, current_flight_status, scheduled_dep_str, flight_time_minutes = flight
+        scheduled_dep_dt = datetime.strptime(scheduled_dep_str, '%Y-%m-%d %H:%M:%S')
+
+        # --- 1. Generate "NotDeparted" log entry (first log for any flight) ---
+        # Ensure NotDeparted logs are sequential by flight_ID
+        log_time_not_departed = last_not_departed_log_time_tracker + timedelta(minutes=random.randint(5, 15)) # Small random increment
+        last_not_departed_log_time_tracker = log_time_not_departed # Update tracker for next flight ID
+
+        all_log_entries.append((
+            flight_id,
+            'NotDeparted',
+            scheduled_dep_str, # Always original scheduled time for NotDeparted
+            log_time_not_departed.strftime('%Y-%m-%d %H:%M:%S')
+        ))
+
+        # --- Determine actual departure time and potential delay ---
+        actual_departure_dt = scheduled_dep_dt
         delay_occurred = False
-
-        # 1. Always log "NotDeparted" at some point before departure
-        creation_time = dep_dt - timedelta(days=random.randint(2, 10))
-        log_entries.append((flight_id, 'NotDeparted', dep_dt.strftime('%Y-%m-%d %H:%M:%S'), creation_time.strftime('%Y-%m-%d %H:%M:%S')))
-
-        # 2. Possibly log "Delayed" if within configured probability
-        if current_status in delay_probs and random.random() < delay_probs[current_status]:
+        
+        # Simulate a delay for relevant flight types based on probability
+        if current_flight_status in ['Delayed', 'OnRoute', 'Arrived', 'Cancelled'] and random.random() < delay_prob:
+            delay_minutes = random.randint(30, 240) # Delay duration (0.5 to 4 hours)
+            actual_departure_dt = scheduled_dep_dt + timedelta(minutes=delay_minutes)
             delay_occurred = True
-            original_dep = dep_dt - timedelta(minutes=random.randint(30, 180))
-            delay_log_time = creation_time + timedelta(hours=random.randint(1, 48))
-            log_entries.append((flight_id, 'Delayed', original_dep.strftime('%Y-%m-%d %H:%M:%S'), delay_log_time.strftime('%Y-%m-%d %H:%M:%S')))
 
-        # 3. Now add other logs depending on final status
-        if current_status == 'Delayed':
-            pass  # Already handled above
+            # --- 2. Generate "Delayed" status log entry if a delay occurred ---
+            # IMPORTANT: For 'Delayed' status, departure_date_time in the log is the NEW (delayed) time
+            new_delayed_departure_str = actual_departure_dt.strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Log time for when the delay was announced/logged
+            log_time_delayed = log_time_not_departed + timedelta(hours=random.randint(1, 48))
+            # Ensure delay log is before actual (delayed) departure if flight is 'OnRoute'/'Arrived'
+            if current_flight_status in ['OnRoute', 'Arrived'] and log_time_delayed >= actual_departure_dt:
+                log_time_delayed = actual_departure_dt - timedelta(minutes=random.randint(5, 20)) # Just before delayed departure
+            # Ensure delay log is after NotDeparted for flights still 'Delayed' or 'Cancelled'
+            elif log_time_delayed < log_time_not_departed: # Should mostly be handled by random.randint(1,48) but as safeguard
+                 log_time_delayed = log_time_not_departed + timedelta(minutes=random.randint(5, 60))
 
-        elif current_status == 'OnRoute':
-            actual_dep = dep_dt if not delay_occurred else original_dep + timedelta(minutes=random.randint(30, 180))
-            log_entries.append((flight_id, 'OnRoute', dep_dt.strftime('%Y-%m-%d %H:%M:%S'), actual_dep.strftime('%Y-%m-%d %H:%M:%S')))
+            all_log_entries.append((
+                flight_id,
+                'Delayed',
+                new_delayed_departure_str, # Specific requirement: NEW delayed time for 'Delayed' status
+                log_time_delayed.strftime('%Y-%m-%d %H:%M:%S')
+            ))
 
-        elif current_status == 'Arrived':
-            actual_dep = dep_dt if not delay_occurred else dep_dt - timedelta(minutes=random.randint(30, 180))
-            arrival_time = actual_dep + timedelta(minutes=flight_time)
-            log_entries.append((flight_id, 'OnRoute', actual_dep.strftime('%Y-%m-%d %H:%M:%S'), actual_dep.strftime('%Y-%m-%d %H:%M:%S')))
-            log_entries.append((flight_id, 'Arrived', actual_dep.strftime('%Y-%m-%d %H:%M:%S'), arrival_time.strftime('%Y-%m-%d %H:%M:%S')))
+        # --- Generate subsequent logs based on the flight's final status ---
+        # For OnRoute, Arrived, Cancelled statuses, departure_date_time in log is always the ORIGINAL scheduled time
+        
+        if current_flight_status == 'OnRoute':
+            # This flight has departed and is currently in transit
+            # Log time for when the flight went 'OnRoute' (i.e., departed)
+            log_time_on_route = actual_departure_dt + timedelta(minutes=random.randint(5, 30))
+            all_log_entries.append((
+                flight_id,
+                'OnRoute',
+                scheduled_dep_str, # ORIGINAL scheduled time
+                log_time_on_route.strftime('%Y-%m-%d %H:%M:%S')
+            ))
 
-        elif current_status == 'Cancelled':
-            cancel_time = dep_dt + timedelta(minutes=random.randint(-60, 60))
-            log_entries.append((flight_id, 'Cancelled', dep_dt.strftime('%Y-%m-%d %H:%M:%S'), cancel_time.strftime('%Y-%m-%d %H:%M:%S')))
+        elif current_flight_status == 'Arrived':
+            # This flight has departed and arrived
+            # Log time for when the flight went 'OnRoute' (i.e., departed)
+            log_time_on_route = actual_departure_dt + timedelta(minutes=random.randint(5, 30))
+            all_log_entries.append((
+                flight_id,
+                'OnRoute',
+                scheduled_dep_str, # ORIGINAL scheduled time
+                log_time_on_route.strftime('%Y-%m-%d %H:%M:%S')
+            ))
 
-    # Sort logs by log_date_time and insert into DB
-    for flight_id, status, dep_time, log_time in sorted(log_entries, key=lambda x: x[3]):
+            # Log time for when the flight 'Arrived'
+            actual_arrival_dt = actual_departure_dt + timedelta(minutes=flight_time_minutes + random.randint(-15, 30)) # Add slight variance to flight time
+            log_time_arrived = actual_arrival_dt + timedelta(minutes=random.randint(5, 30)) # Logged shortly after actual arrival
+            all_log_entries.append((
+                flight_id,
+                'Arrived',
+                scheduled_dep_str, # ORIGINAL scheduled time
+                log_time_arrived.strftime('%Y-%m-%d %H:%M:%S')
+            ))
+
+        elif current_flight_status == 'Cancelled':
+            # Flight was cancelled
+            # Log time for cancellation. Can be before or after scheduled departure.
+            # Ensure it's after the NotDeparted log and after Delayed log if applicable
+            log_time_cancelled = scheduled_dep_dt + timedelta(minutes=random.randint(-120, 120)) # Within 2 hours of scheduled dep
+            
+            # Find the latest log time generated for this flight so far to ensure chronological order
+            latest_prev_log_time = log_time_not_departed
+            if delay_occurred:
+                # If there was a delayed log, cancellation must be after it
+                latest_prev_log_time = max(latest_prev_log_time, log_time_delayed)
+            
+            if log_time_cancelled < latest_prev_log_time:
+                log_time_cancelled = latest_prev_log_time + timedelta(minutes=random.randint(10, 60))
+
+            all_log_entries.append((
+                flight_id,
+                'Cancelled',
+                scheduled_dep_str, # ORIGINAL scheduled time
+                log_time_cancelled.strftime('%Y-%m-%d %H:%M:%S')
+            ))
+
+
+    # --- Sort all log entries by log_date_time globally before inserting ---
+    sorted_log_entries = sorted(all_log_entries, key=lambda x: datetime.strptime(x[3], '%Y-%m-%d %H:%M:%S'))
+
+    print("\n--- Inserting FlightStatusLog Entries ---")
+    for flight_id, status, dep_time_str, log_time_str in sorted_log_entries:
         cursor.execute("""
             INSERT INTO FlightStatusLog (flight_ID, status, departure_date_time, log_date_time)
             VALUES (?, ?, ?, ?)
-        """, (flight_id, status, dep_time, log_time))
+        """, (flight_id, status, dep_time_str, log_time_str))
 
-if __name__ == "__main__":
-    try:
+try:
     # All functions calls here
         generate_fake_pilots(10)
         generate_fake_destinations (10)
@@ -181,11 +253,13 @@ if __name__ == "__main__":
 
         db_conn.commit()
 
-    except Exception as e:
+        print("\nDatabase population successful and changes committed.")
+
+except Exception as e:
         print(f"An error occurred: {e}")
         db_conn.rollback() # Rollback changes on error
 
-    finally:
+finally:
         db_conn.close()
         print("Database connection closed.")
 

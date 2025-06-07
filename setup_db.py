@@ -17,7 +17,7 @@ def create_database():
         personal_id INTEGER PRIMARY KEY AUTOINCREMENT,
         first_name TEXT NOT NULL,
         surname TEXT NOT NULL,
-        dob DATE NOT NULL CHECK (dob <= DATE('now')),
+        dob DATE NOT NULL,
         email TEXT NOT NULL UNIQUE,
         postcode TEXT NOT NULL CHECK (LENGTH(postcode) <=8),
         city TEXT NOT NULL,
