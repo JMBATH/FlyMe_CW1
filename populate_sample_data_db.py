@@ -141,8 +141,8 @@ def generate_status_logs(cursor, db_conn):
 
 try:
     # All functions calls here
-        generate_fake_pilots(0, cursor, db_conn)
-        generate_fake_destinations (0, cursor, db_conn)
+        generate_fake_pilots(10, cursor, db_conn)
+        generate_fake_destinations (10, cursor, db_conn)
         generate_fake_flights(cursor, db_conn)
         generate_status_logs (cursor, db_conn)
 
