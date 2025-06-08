@@ -56,7 +56,7 @@ def generate_fake_destinations(n, cursor, db_conn):
 
 def generate_fake_flights(cursor, db_conn):
     flight_data = [
-        # personal_ID, destination_ID, arrival_destination_ID, departure_date_time (string), flight_time (minutes), status
+        #personal_ID, destination_ID, arrival_destination_ID, departure_date_time (string), flight_time (minutes), status
         (8, 1, 7, '2025-01-05 14:30:00', 60, 'Arrived'),
         (2, 4, 10, '2025-06-04 09:55:00', 480, 'Arrived'),
         (6, 8, 6, '2025-03-04 16:55:00', 30, 'Arrived'),
@@ -68,7 +68,7 @@ def generate_fake_flights(cursor, db_conn):
         (7, 5, 1, '2025-05-13 16:20:00', 209, 'Arrived'), 
         (10, 7, 1, '2025-10-19 19:30:00', 401, 'NotDeparted'),
     ]
-    # SQL INSERT statement
+    #SQL INSERT statement
     insert_sql = '''
         INSERT INTO Flights (
             personal_ID,
@@ -81,9 +81,7 @@ def generate_fake_flights(cursor, db_conn):
         VALUES (?, ?, ?, ?, ?, ?)
         '''
     try:
-        # Use executemany for data insertion
         cursor.executemany(insert_sql, flight_data)
-        print("Specific flight data added to the 'Flights' table.")
     except sqlite3.IntegrityError as e:
         print(f"A database integrity error occurred during flight insertion: {e}")
     except Exception as e:
@@ -93,7 +91,7 @@ def generate_status_logs(cursor, db_conn):
     log_data = [
         # flight_ID, status, departure_date_time, log_date_time
         (1, 'NotDeparted', '2025-01-05 14:30:00', '2024-05-12 09:36:00'),
-        (2, 'NotDeparted', '2025-07-04 01:45:00', '2024-05-12 09:50:00'),
+        (2, 'NotDeparted', '2025-06-04 01:45:00', '2024-05-12 09:50:00'),
         (1, 'OnRoute', '2025-01-05 14:30:00', '2025-01-05 14:30:00'),
         (1, 'Arrived', '2025-01-05 14:30:00', '2025-01-05 15:30:00'),
         (3, 'NotDeparted', '2025-03-04 16:25:00', '2025-01-08 10:39:42'),
@@ -132,8 +130,7 @@ def generate_status_logs(cursor, db_conn):
         '''
     try:
         cursor.executemany(insert_sql, log_data)
-        db_conn.commit() # Commit changes to the database
-        print("Specific flight status log data added to the 'FlightStatusLog' table.")
+        db_conn.commit() #Commit changes to the database
     except sqlite3.IntegrityError as e:
         print(f"A database integrity error occurred during flight status log insertion: {e}")
     except Exception as e:
