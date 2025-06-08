@@ -1,10 +1,12 @@
 import sqlite3
 from datetime import datetime
 from db_interaction_connection import get_connection
+#Import function to start connection to database
 
 from db_interaction_log import (
     log_flight_status
-)
+) #Import function to log status change in FlightStatusLog
+
 
 
 #Gets Flights from database by their status. Also handles retrieving all flights

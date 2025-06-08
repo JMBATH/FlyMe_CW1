@@ -1,6 +1,11 @@
 from db_interaction_connection import get_connection
+#Import function to start connection to database
 
 def delete_pilot_by_id(pilot_id):
+    '''
+    Function to delete entry fromn Pilot table, by personal_ID
+    Note SQL restrictions prevent delete if personal_ID assigned to flight, however restriction also enforced in Python below
+    '''
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -13,6 +18,7 @@ def delete_pilot_by_id(pilot_id):
             print(f"Cannot delete pilot: assigned to Flight ID {flight[0]}")
             return
 
+        #If pilot not assigned, delete
         cur.execute("DELETE FROM Pilots WHERE personal_ID = ?", (pilot_id,))
         conn.commit()
         print(f"Pilot ID {pilot_id} deleted successfully.")
@@ -26,23 +32,23 @@ def view_all_pilots(format_table):
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM Pilots")
+        cur.execute("SELECT * FROM Pilots")#SQL statements, view all entries in Pilot table
         rows = cur.fetchall()
         conn.close()
 
-        if not rows:
+        if not rows: #Error handling if table empty
             print("No pilot records found.")
             return []
 
         headers = ["Pilot ID", "First Name", "Surname", "DOB", "Email"]
         formatted_rows = []
 
-        for row in rows:
+        for row in rows: #Adds @flyme.com to end of email, remove unnessecary characters from database storage
             row = list(row)
             row[4] = f"{row[4]}@flyme.com" if "@" not in row[4] else row[4]
             formatted_rows.append(row)
 
-        if format_table:
+        if format_table: #Pulls formatting table requirements from Main.py
             format_table(formatted_rows, headers)
         
         return formatted_rows
@@ -52,7 +58,10 @@ def view_all_pilots(format_table):
         return []
 
 def add_new_pilot():
-    try:
+    '''
+    Add new pilot, entering all required info
+    '''
+    try: #Requests info from User
         print("\n--- Add New Pilot ---")
         first_name = input("Enter first name: ")
         surname = input("Enter surname: ")
@@ -60,7 +69,7 @@ def add_new_pilot():
         email = input("Enter email: ")
 
         conn = get_connection()
-        cur = conn.cursor()
+        cur = conn.cursor() #SQL Insert statement
         cur.execute("""
             INSERT INTO Pilots (first_name, surname, DOB, email)
             VALUES (?, ?, ?, ?)

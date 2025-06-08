@@ -2,7 +2,6 @@
 #Code to create SQLite database and all required table for flight management system
 #Tables only created if do not already exist
 
-
 import sqlite3 #Import the sqlite3 module needed to interact with SQL data/make tables
 
 #Function to make tables and database

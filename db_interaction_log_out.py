@@ -1,4 +1,5 @@
 from db_interaction_connection import get_connection
+#Import function to start connection to database
 
 def view_delayed_flights_with_duration(format_table):
     """

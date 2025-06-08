@@ -1,4 +1,5 @@
 from db_interaction_connection import get_connection
+#Import function to start connection to database
 
 def view_all_destinations(format_table):
     try:

@@ -1,4 +1,5 @@
 from db_interaction_connection import get_connection
+#Import function to start connection to database
 from datetime import datetime
 
 #Inserts a log entry into FlightStatusLog, when a flights status is updated or flight made
