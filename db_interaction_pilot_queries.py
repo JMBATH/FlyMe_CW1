@@ -1,3 +1,5 @@
+##File contains logic associated with inputting/retrievign data from Pilots table using SQL commands
+
 from db_interaction_connection import get_connection
 #Import function to start connection to database
 
@@ -29,6 +31,9 @@ def delete_pilot_by_id(pilot_id):
         conn.close()
 
 def view_all_pilots(format_table):
+    '''
+    View all entries in Pilot table along with all associated meta-data
+    '''
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -83,6 +88,9 @@ def add_new_pilot():
         print(f"Failed to add new pilot: {e}")
 
 def reassign_pilot(flight_id):
+    '''
+    Re-assign a pilot id on a specified flight
+    '''
     try:
         new_pilot_id = input("Enter new Pilot ID to assign to this flight: ")
 
@@ -98,6 +106,9 @@ def reassign_pilot(flight_id):
         print(f"Failed to reassign pilot: {e}")
 
 def count_total_pilots():
+    '''
+    Count number of entries in Pilot table
+    '''
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -106,7 +117,7 @@ def count_total_pilots():
         conn.close()
 
         count = result[0] if result else 0
-        print("-" * 60)
+        print("-" * 100)
         print(f"\nTotal number of active pilots: {count}")
         return count
 
@@ -120,6 +131,7 @@ def _get_flights_for_pilot(pilot_id, status_filter=None):
         conn = get_connection()
         cur = conn.cursor()
 
+        #SQL code to retrieves flights assigned to a pilot with destination info and optional status filtering, calculating arrival time.
         base_sql = """
             SELECT
                 p.personal_ID,
@@ -153,6 +165,10 @@ def _get_flights_for_pilot(pilot_id, status_filter=None):
         return []
 
 def view_all_flights_for_pilot(pilot_id, format_table):
+    '''
+    View Flights that a specific pilot is assigned too
+    '''
+    
     rows = _get_flights_for_pilot(pilot_id)
     headers = [
         "Pilot ID", "First Name", "Flight ID", "Departure Time",
@@ -161,15 +177,12 @@ def view_all_flights_for_pilot(pilot_id, format_table):
 
     if format_table:
         format_table(rows, headers)
-    else:
-        print("\n" + " | ".join(headers))
-        print("-" * 100)
-        for row in rows:
-            print(" | ".join(str(cell) for cell in row))
 
 
 def view_active_flights_for_pilot(pilot_id, format_table):
-    
+    '''
+    View Flights that a specific pilot is assigned too, removing any entries with Status "Assigned" (Upcoming/Ongoing Flights)
+    '''
     rows = _get_flights_for_pilot(pilot_id, status_filter="Arrived")
     headers = [
         "Pilot ID", "First Name", "Flight ID", "Departure Time",
@@ -178,8 +191,3 @@ def view_active_flights_for_pilot(pilot_id, format_table):
 
     if format_table:
         format_table(rows, headers)
-    else:
-        print("\n" + " | ".join(headers))
-        print("-" * 100)
-        for row in rows:
-            print(" | ".join(str(cell) for cell in row))

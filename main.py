@@ -82,7 +82,6 @@ def show_flight_update_menu():
     '''
     Sub-menu used to update and add Flights
     '''
-    
     print("\n--- Update Flights ---")
     print("1. Add Flights")
     print("2. Cancel Flight")
@@ -279,8 +278,8 @@ def main():
                 sub_choice = input("Select a option: ")
 
                 if sub_choice == "1": #Reassign Pilot on Flight
-                    pilot_id = input("Enter Pilot ID Number: ")
-                    reassign_pilot(pilot_id)
+                    flight_id_id = input("Enter Flight ID that needs re-assigning: ")
+                    reassign_pilot(flight_id)
                     input("\nPress Enter to return to the pilot menu...")
 
                 elif sub_choice == "2": #View all Flights a specific Pilot has flown/will fly

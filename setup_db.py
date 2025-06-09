@@ -71,6 +71,6 @@ def create_database():
 
     print("Databases successfully created")
 
-    #Entry point: Only run this fucntion if this script is executed directly
+    #Entry point: Only run this function if this script is executed directly
 if __name__ == "__main__":
     create_database()

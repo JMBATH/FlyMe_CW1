@@ -1,3 +1,5 @@
+##File handles logic associated with transferring data to FlightStatusLog from Flight table, when a "Status" is updated
+
 from db_interaction_connection import get_connection
 #Import function to start connection to database
 from datetime import datetime

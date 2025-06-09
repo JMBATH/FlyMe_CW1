@@ -1,7 +1,13 @@
+##File contains logic associated with inputting/retrievign data from Destinations table using SQL commands
+
 from db_interaction_connection import get_connection
 #Import function to start connection to database
 
+
 def view_all_destinations(format_table):
+    '''
+    Simple Function to view all entries in Destination table, and format output to passes "format_table" function from Main
+    '''
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -17,7 +23,14 @@ def view_all_destinations(format_table):
         print(f"Failed to retrieve destinations: {e}")
 
 def delete_destination_by_id(destination_id):
+    '''
+    Fucntion to delete a Destination
+    Fucntion checkes first that the Destination is not referenced in Flight table, as Destination is a foreign key, and set to prevent delete
+    Rule also enforced by SQL, but further checked here in Python script
+    '''
+    
     try:
+        ##Check Destination_ID to be deleted not used in Flight table
         conn = get_connection()
         cur = conn.cursor()
         cur.execute("""
@@ -30,6 +43,7 @@ def delete_destination_by_id(destination_id):
             print(f"Cannot delete: destination is assigned to Flight ID {result[0]}")
             return
 
+        #If not referenced, then delete entry
         cur.execute("DELETE FROM Destinations WHERE destination_ID = ?", (destination_id,))
         conn.commit()
         print("Destination deleted.\n")
@@ -40,6 +54,11 @@ def delete_destination_by_id(destination_id):
         conn.close()
 
 def update_destination(destination_id):
+    '''
+    Update columns in Destination table
+    Asks user to update all columns, expcept for destination_ID (primary key)
+    '''
+    
     try:
         country = input("Enter new country: ")
         name = input("Enter new destination name: ")
@@ -62,6 +81,10 @@ def update_destination(destination_id):
         print(f"Failed to update destination: {e}")
 
 def find_flights_by_destination(destination_id, format_table):
+    '''
+    Function to find flights flyign from or to a location
+    Checks if detsination_ID present in destination or arrival_destination id column under Flight table
+    '''
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -84,6 +107,10 @@ def find_flights_by_destination(destination_id, format_table):
         print(f"Failed to find flights for destination: {e}")
 
 def add_new_destination():
+    '''
+    Adds new entry to Destination database, prompting user for all required information
+    '''
+    
     try:
         print("\n--- Add New Destination ---")
         country = input("Enter country: ")

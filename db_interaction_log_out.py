@@ -1,3 +1,6 @@
+##File contains logic for functiosn related to extracting data from FlightStatusLog
+#Contains logic for viewing which Flights were "Delayed" and average time of delay in minutes
+
 from db_interaction_connection import get_connection
 #Import function to start connection to database
 
@@ -9,6 +12,7 @@ def view_delayed_flights_with_duration(format_table):
         conn = get_connection()
         cur = conn.cursor()
 
+         #SQL command. Converts time to JULIANDAY to allow arithmetic calculation (length of time for delay from difference in original and updated departure time)
         cur.execute("""
             SELECT 
                 nf.flight_ID,
@@ -38,6 +42,7 @@ def view_average_delay_duration():
         conn = get_connection()
         cur = conn.cursor()
 
+        #SQL command. Converts time to JULIANDAY to allow arithmetic calculation (length of time for delay from difference in original and updated departure time)
         cur.execute("""
             SELECT 
                 ROUND(AVG((JULIANDAY(df.departure_date_time) - JULIANDAY(nf.departure_date_time)) * 1440), 1) AS average_delay_minutes
